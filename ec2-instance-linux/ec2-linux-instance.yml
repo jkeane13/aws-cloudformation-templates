@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Creates a Base Linux EC2 t2.nano with Port 22 open for SSH
+
+Parameters:
+  KeyName:
+    Type: String
+    Description: Name of the Keypair you wish to use for your EC2 Instance
+  
+Resources:
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-10918173
+      InstanceType: t2.nano
+      KeyName: !Ref KeyName
+      SecurityGroupIds: 
+        - !GetAtt InstanceSecurityGroup.GroupId
+      Tags:
+        - Key: Name
+          Value: Base Linux EC2 Instance
+      BlockDeviceMappings:
+        - DeviceName: /dev/sdm
+          Ebs:
+            VolumeType: gp2
+            VolumeSize: 10
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SSH inbound rule security group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: SSH Port 80 Security Group
