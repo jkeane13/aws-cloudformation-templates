@@ -1,0 +1,94 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Creates an AutoScaling Group with an Nginx Server setup using metadata
+
+Parameters:
+  KeyName:
+    Type: String
+    Description: Name of the Keypair you wish to use for you AutoScaling Group
+
+Resources:
+  LaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: ami-10918173
+      InstanceType: t2.nano
+      KeyName: !Ref KeyName
+      SecurityGroups: 
+        - !Ref InstanceSecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/sdm
+          Ebs:
+            VolumeType: gp2
+            VolumeSize: 10
+      UserData: !Base64
+        Fn::Sub: |
+          #!/bin/bash
+          yum update -y
+          yum install -y aws-cli
+          yum install -y aws-cfn-bootstrap
+          yum install -y https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.amzn1.noarch.rpm
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource LaunchConfiguration --configsets default --region ${AWS::Region}
+
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          default:
+            - setup-nginx
+            - create-index-file
+            - change-nginx-root-location
+          
+        setup-nginx:
+          packages:
+            yum:
+              nginx: []
+          services:
+            sysvinit:
+              nginx:
+                enabled: true
+                ensureRunning: true
+                file:
+                  - "/etc/nginx/nginx.conf"
+                sources:
+                  - "var/www/html"
+
+        create-index-file:
+          files:
+            /var/www/html/index.html:
+              content: 
+                Fn::Sub: |
+                 <h1>Hello from Nginx AutoScaling Group!</h1>
+              mode: "000755"
+              owner: "root"
+
+        change-nginx-root-location:
+          commands:
+            0-replace-root:
+              command: sed -i 's_/usr/share/nginx_/var/www_' /etc/nginx/nginx.conf
+            1-restart-nginx:
+              command: service nginx restart
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Open Port 80 and 22 to allow web traffice and SSH
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AvailabilityZones: !GetAZs ''
+      LaunchConfigurationName: !Ref LaunchConfiguration
+      MaxSize: '1'
+      MinSize: '1'
+      Tags:
+        - Key: Name
+          Value: AutoScale Stack
+          PropagateAtLaunch: true
