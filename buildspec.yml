@@ -1,11 +1,43 @@
 version: 0.2
 
+#env:
+  #variables:
+     # key: "value"
+     # key: "value"
+  #parameter-store:
+     # key: "value"
+     # key: "value"
+
 phases:
-  install:
-    runtime-versions:
-      docker: 18
+  #install:
+    #runtime-versions:
+      # name: version
+      # name: version
+    #commands:
+      # - command
+      # - command
+  #pre_build:
+    #commands:
+      # - command
+      # - command
   build:
     commands:
-      - echo Entered the build phase...
-      - echo Build started on `date`
-      - ls
+      - echo "Hello World"
+      - ls 
+      - cd ec2-auto-scaling
+      - chmod a+x run_stack.sh
+      - ./run_stack.sh
+  #post_build:
+    #commands:
+      # - command
+      # - command
+#artifacts:
+  #files:
+    # - location
+    # - location
+  #name: $(date +%Y-%m-%d)
+  #discard-paths: yes
+  #base-directory: location
+#cache:
+  #paths:
+    # - paths
